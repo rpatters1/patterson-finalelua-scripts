@@ -15,3 +15,7 @@ package.path = "<finale-lua-scripts-folder>/src/?.lua;" .. package.path
 
 This should allow all the scripts to run.
 
+Example:
+
+<img width="683" alt="Screen Shot 2024-10-26 at 11 01 35 AM" src="https://github.com/user-attachments/assets/a2a83e1e-a95f-4f9a-9648-179ef88bd910">
+
