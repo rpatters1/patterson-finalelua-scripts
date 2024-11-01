@@ -19,7 +19,7 @@ local ENIGMAXML_EXTENSION <const> = ".enigmaxml"
 local MUSX_EXTENSION <const> = ".musx"
 local MUS_EXTENSION <const> = ".mus"
 
-function select_directory()
+local function select_directory()
     local default_folder_path = finale.FCString()
     default_folder_path:SetMusicFolderPath()
     local open_dialog = finale.FCFolderBrowseDialog(finenv.UI())
@@ -58,8 +58,9 @@ local function move_to_export_folder(path, filename)
     local new_path_os = assure_export_folder_exists(path)
     local path_os = client.encode_with_client_codepage(path)
     local file_os = client.encode_with_client_codepage(filename)
-    
-    local command = string.format("mv %q %q", path_os .. file_os, new_path_os .. "/" .. file_os)
+
+    local format_string = finenv.UI():IsOnMac() and "mv %q %q" or "move %q %q"
+    local command = string.format(format_string, path_os .. file_os, new_path_os .. "/" .. file_os)
     local success, msg_or_status = os.execute(command)
 
     if not success then
@@ -83,7 +84,10 @@ for path, filename in utils.eachfile(selected_folder, true) do
                 assure_export_folder_exists(path)
                 -- We make a copy of the .mus file because FCDocument.Save will delete it
                 local copy_path = path .. file .. " copy" .. extension
-                local copy_command = string.format('cp -p %q %q', client.encode_with_client_codepage(path .. filename), client.encode_with_client_codepage(copy_path))
+                local format_string = finenv.UI():IsOnMac() and "cp -p %q %q"
+                        or 'powershell -Command "Copy-Item -Path %q -Destination %q -Force"'
+                local copy_command = string.format(format_string, client.encode_with_client_codepage(path .. filename),
+                        client.encode_with_client_codepage(copy_path))
                 if os.execute(copy_command) then
                     local document = finale.FCDocument()
                     if document:Open(finale.FCString(copy_path), true, nil, true, false, true) then
