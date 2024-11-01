@@ -71,7 +71,8 @@ local function move_to_export_folder(path, filename)
     return success, msg_or_status
 end
 
-local SUBFOLDER_STRING <const> = "/" .. SUBFOLDER_NAME .. "/"
+local FOLDER_SEP <const> = finenv.UI():IsOnMac() and "/" or "\\"
+local SUBFOLDER_STRING <const> = FOLDER_SEP .. SUBFOLDER_NAME .. FOLDER_SEP
 
 for path, filename in utils.eachfile(selected_folder, true) do
     if path:sub(-SUBFOLDER_STRING:len()) ~= SUBFOLDER_STRING then
@@ -84,8 +85,7 @@ for path, filename in utils.eachfile(selected_folder, true) do
                 assure_export_folder_exists(path)
                 -- We make a copy of the .mus file because FCDocument.Save will delete it
                 local copy_path = path .. file .. " copy" .. extension
-                local format_string = finenv.UI():IsOnMac() and "cp -p %q %q"
-                        or 'powershell -Command "Copy-Item -Path %q -Destination %q -Force"'
+                local format_string = finenv.UI():IsOnMac() and "cp -p %q %q" or "copy /b %q %q"
                 local copy_command = string.format(format_string, client.encode_with_client_codepage(path .. filename),
                         client.encode_with_client_codepage(copy_path))
                 if os.execute(copy_command) then
@@ -94,13 +94,15 @@ for path, filename in utils.eachfile(selected_folder, true) do
                         if not document:Save(finale.FCString(path .. SUBFOLDER_NAME .. "/" .. file .. MUSX_EXTENSION)) then
                             print("failed to save musx " .. path .. file .. MUSX_EXTENSION)
                         end
-                        document:CloseCurrentDocumentAndWindow(false) -- rollback any edits
+                        local docs = finale.FCDocuments()
+                        if finenv.UI():IsOnMac() or docs:LoadAll() > 1 then
+                            document:CloseCurrentDocumentAndWindow(false) -- rollback any edits
+                        end
                         document:SwitchBack()
-                        move_to_export_folder(path, file .. MUSX_EXTENSION)
                     else
                         print("failed to open document " .. path .. filename)
                     end
-                    os.remove(copy_path)
+                    os.remove(client.encode_with_client_codepage(copy_path))
                 else
                     print ("failed to copy mus file to " .. copy_path)
                 end
