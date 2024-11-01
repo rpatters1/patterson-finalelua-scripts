@@ -4,8 +4,8 @@ function plugindef()
     finaleplugin.NoStore = true
     finaleplugin.ExecuteExternalCode = true
     finaleplugin.CategoryTags = "Document"
-    finaleplugin.MinJWLuaVersion = 0.75
-    return "Move Exports...", "Move Exports", "Move all exports to a folder called ‘-exports.’"
+    finaleplugin.MinJWLuaVersion = 0.76
+    return "Move Exports...", "Move Exports", "Move all exports to a folder called ‘-exports’"
 end
 
 local utils = require("library.utils")
@@ -81,19 +81,24 @@ for path, filename in utils.eachfile(selected_folder, true) do
             local attr = lfs.attributes(client.encode_with_client_codepage(path .. file .. MUSX_EXTENSION))
             if not attr or attr.mode ~= "file" then
                 assure_export_folder_exists(path)
-                local document = finale.FCDocument()
-                if document:Open(finale.FCString(path .. filename), true, nil, true, false, true) then
-                    local str = finale.FCString()
-                    document:GetPath(str)
-                    print("opened doc " .. str.LuaString)
-                    if not document:Save() then
-                        print("failed to save musx " .. path .. file .. MUSX_EXTENSION)
+                -- We make a copy of the .mus file because FCDocument.Save will delete it
+                local copy_path = path .. file .. " copy" .. extension
+                local copy_command = string.format('cp -p %q %q', client.encode_with_client_codepage(path .. filename), client.encode_with_client_codepage(copy_path))
+                if os.execute(copy_command) then
+                    local document = finale.FCDocument()
+                    if document:Open(finale.FCString(copy_path), true, nil, true, false, true) then
+                        if not document:Save(finale.FCString(path .. SUBFOLDER_NAME .. "/" .. file .. MUSX_EXTENSION)) then
+                            print("failed to save musx " .. path .. file .. MUSX_EXTENSION)
+                        end
+                        document:CloseCurrentDocumentAndWindow(false) -- rollback any edits
+                        document:SwitchBack()
+                        move_to_export_folder(path, file .. MUSX_EXTENSION)
+                    else
+                        print("failed to open document " .. path .. filename)
                     end
-                    document:CloseCurrentDocumentAndWindow(false) -- rollback any edits
-                    document:SwitchBack()
-                    move_to_export_folder(path, file .. MUSX_EXTENSION)
+                    os.remove(copy_path)
                 else
-                    print("failed to open document " .. path .. filename)
+                    print ("failed to copy mus file to " .. copy_path)
                 end
             end
         end
