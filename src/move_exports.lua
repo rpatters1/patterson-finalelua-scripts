@@ -74,39 +74,59 @@ end
 local FOLDER_SEP <const> = finenv.UI():IsOnMac() and "/" or "\\"
 local SUBFOLDER_STRING <const> = FOLDER_SEP .. SUBFOLDER_NAME .. FOLDER_SEP
 
+local function export_updated_document(path, file, extension)
+    local calc_mod_time = function(utf8_path)
+        local attr = lfs.attributes(client.encode_with_client_codepage(utf8_path))
+        if attr then
+            return attr.modification
+        end
+        return -1
+    end
+
+    local document_path <const> = path .. file .. extension
+    local updated_docpath <const> = path .. SUBFOLDER_NAME .. "/" .. file .. ".fin27" .. MUSX_EXTENSION
+    if calc_mod_time(updated_docpath) > calc_mod_time(document_path) then
+        return
+    end
+
+    assure_export_folder_exists(path)
+    -- We make a copy of the original .mus or .musx file because FCDocument.Save may delete it
+    local copy_path <const> = path .. file .. " copy" .. extension
+    local format_string = finenv.UI():IsOnMac() and "cp -p %q %q" or "copy /b %q %q"
+    local copy_command = string.format(format_string, client.encode_with_client_codepage(document_path),
+            client.encode_with_client_codepage(copy_path))
+    if os.execute(copy_command) then
+        local document = finale.FCDocument()
+        if document:Open(finale.FCString(copy_path), true, nil, true, false, true) then
+            if not document:Save(finale.FCString(updated_docpath)) then
+                print("failed to save updated musx " .. updated_docpath)
+            end
+            local docs = finale.FCDocuments()
+            if finenv.UI():IsOnMac() or docs:LoadAll() > 1 then
+                document:CloseCurrentDocumentAndWindow(false) -- rollback any edits
+            end
+            document:SwitchBack()
+        else
+            print("failed to open document " .. document_path)
+        end
+        os.remove(client.encode_with_client_codepage(copy_path))
+    else
+        print ("failed to copy mus file to " .. copy_path)
+    end
+end
+
 for path, filename in utils.eachfile(selected_folder, true) do
     if path:sub(-SUBFOLDER_STRING:len()) ~= SUBFOLDER_STRING then
-        local _path, file, extension = utils.split_file_path(filename)
+        local _, file, extension = utils.split_file_path(filename)
         if extension == MUSICXML_EXTENSION or extension == MUSESTYLE_EXTENSION or extension == ENIGMAXML_EXTENSION then
             move_to_export_folder(path, filename)
         elseif extension == MUS_EXTENSION then
             local attr = lfs.attributes(client.encode_with_client_codepage(path .. file .. MUSX_EXTENSION))
             if not attr or attr.mode ~= "file" then
-                assure_export_folder_exists(path)
-                -- We make a copy of the .mus file because FCDocument.Save will delete it
-                local copy_path = path .. file .. " copy" .. extension
-                local format_string = finenv.UI():IsOnMac() and "cp -p %q %q" or "copy /b %q %q"
-                local copy_command = string.format(format_string, client.encode_with_client_codepage(path .. filename),
-                        client.encode_with_client_codepage(copy_path))
-                if os.execute(copy_command) then
-                    local document = finale.FCDocument()
-                    if document:Open(finale.FCString(copy_path), true, nil, true, false, true) then
-                        if not document:Save(finale.FCString(path .. SUBFOLDER_NAME .. "/" .. file .. MUSX_EXTENSION)) then
-                            print("failed to save musx " .. path .. file .. MUSX_EXTENSION)
-                        end
-                        local docs = finale.FCDocuments()
-                        if finenv.UI():IsOnMac() or docs:LoadAll() > 1 then
-                            document:CloseCurrentDocumentAndWindow(false) -- rollback any edits
-                        end
-                        document:SwitchBack()
-                    else
-                        print("failed to open document " .. path .. filename)
-                    end
-                    os.remove(client.encode_with_client_codepage(copy_path))
-                else
-                    print ("failed to copy mus file to " .. copy_path)
-                end
+                export_updated_document(path, file, extension)
             end
+        elseif extension == MUS_EXTENSION then
+            export_updated_document(path, file, extension)
         end
     end
 end
