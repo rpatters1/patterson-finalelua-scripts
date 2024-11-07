@@ -22,7 +22,7 @@ documents:LoadAll()
 local document = documents:FindCurrent()
 if document then
     document:GetPath(input_filepath)
-    local path, name, _extension = utils.split_file_path(input_filepath.LuaString)
+    local path, name = utils.split_file_path(input_filepath.LuaString)
     local save_dialog = finale.FCFileSaveAsDialog(finenv.UI())
     save_dialog:SetWindowTitle(finale.FCString("Save EnigmaXML File as"))
     save_dialog:AddFilter(finale.FCString("*" .. ENIGMAXML_EXTENSION), finale.FCString("Enigma XML File"))
@@ -46,7 +46,7 @@ else
         return
     end
     open_dialog:GetFileName(input_filepath)
-    local path, name, _extension = utils.split_file_path(input_filepath.LuaString)
+    local path, name = utils.split_file_path(input_filepath.LuaString)
     output_filepath.LuaString = path .. name .. ENIGMAXML_EXTENSION
 end
 
@@ -55,8 +55,12 @@ local buffer = enigmaxml.extract_enigmaxml(os_input)
 
 local os_output = client.encode_with_client_codepage(output_filepath.LuaString)
 local out_file <close> = io.open(os_output, "wb")
-out_file:write(buffer)
-out_file:close()
+if out_file then
+    out_file:write(buffer)
+    out_file:close()
+else
+    error("unable to write to " .. output_filepath.LuaString)
+end
 
 local output_name = client.encode_with_utf8_codepage(os_output)
 finenv:UI():AlertInfo("Wrote EnigmaXML " .. output_name, "Success")

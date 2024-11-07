@@ -1,6 +1,8 @@
 local library = require("library.general_library")
 
-local evpus_to_shift = 12
+local evpus_to_shift <const> = 12
+
+local current_is_part <const> = library.get_current_part().ID ~= finale.PARTID_SCORE
 
 local is_staff_visible = function(staff)    
     local hidden_value = staff.HideMode

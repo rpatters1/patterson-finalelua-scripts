@@ -18,7 +18,7 @@ if not global_dialog then
     curr_y = curr_y + y_off
     global_dialog:CreateStatic(0, curr_y, "time")
         :SetWidth(100)
-    curr_y = curr_y + y_off
+    --curr_y = curr_y + y_off
     global_dialog:CreateCancelButton()
     global_dialog:RegisterHandleTimer(function(self, timer)
         if timer ~= GLOBAL_TIMER then
