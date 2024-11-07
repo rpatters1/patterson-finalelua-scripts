@@ -1,0 +1,39 @@
+{
+    "lua.targetVersion": "5.4",
+    "Lua.diagnostics.globals": [
+        "finale",
+        "finenv",
+        "finaleplugin",
+        "coll2table",
+        "dumpproperties",
+        "each",
+        "eachbackwards",
+        "eachcell",
+        "eachentry",
+        "eachentrysaved",
+        "eachstaff",
+        "loadall",
+        "loadallforregion",
+        "pairsbykeys",
+        "prettyformatjson",
+        "bit32",
+        "utf8",
+        "socket",
+        "tinyxml2",
+        "xmlelements",
+        "xmlattributes"
+    ],
+    "files.exclude": {
+        "mobdebug.lua": true
+    },
+    "editor.formatOnSave": true,
+    "Lua.diagnostics.disable": [
+        "lowercase-global",
+        "luadoc-miss-cate-name"
+    ],
+    "vscode-lua-format.configPath": "./luaconfig.config",
+    "[lua]": {
+        "editor.defaultFormatter": "Koihik.vscode-lua-format"
+    },
+    "Lua.runtime.version": "Lua 5.4"
+}
