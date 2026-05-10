@@ -32,6 +32,10 @@ local NATURAL_12EDO_PCS = {
     B = 11,
 }
 
+local MIDI_CENTER_C = 60
+local MIDI_MIN = 0
+local MIDI_MAX = 127
+
 local function get_note_string(note)
     local pitch_string = finale.FCString()
     local cell = finale.FCCell(note.Entry.Measure, note.Entry.Staff)
@@ -76,11 +80,14 @@ local function calc_31edo_pitch(note)
     local absolute_31edo = (octave * 31) + natural_31edo_pc + (semitone_adjust * 2)
     local pitch_class = mod_floor(absolute_31edo, 31)
     local normalized_octave = math.floor((absolute_31edo - pitch_class) / 31)
+    local remapped_midi = MIDI_CENTER_C + ((normalized_octave - 4) * 31) + pitch_class
 
     return {
         note_string = note_string,
         pitch_class = pitch_class,
         octave = normalized_octave,
+        remapped_midi = remapped_midi,
+        midi_reachable = remapped_midi >= MIDI_MIN and remapped_midi <= MIDI_MAX,
     }
 end
 
@@ -94,15 +101,18 @@ local function export_31edo_midi()
                 local result, err = calc_31edo_pitch(note)
                 count = count + 1
                 if result then
+                    local midi_text = result.midi_reachable and tostring(result.remapped_midi)
+                        or string.format("%d (unreachable)", result.remapped_midi)
                     print(string.format(
-                        "Measure %d, Staff %d, Pos %d, Layer %d: %s -> pc %d, octave %d",
+                        "Measure %d, Staff %d, Pos %d, Layer %d: %s -> pc %d, octave %d, midi %s",
                         entry.Measure,
                         entry.Staff,
                         entry.MeasurePos,
                         entry.LayerNumber,
                         result.note_string,
                         result.pitch_class,
-                        result.octave
+                        result.octave,
+                        midi_text
                     ))
                 else
                     print(string.format(
