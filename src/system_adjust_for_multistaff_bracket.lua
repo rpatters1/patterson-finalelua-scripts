@@ -1,21 +1,21 @@
 local library = require("library.general_library")
 
-local evpus_to_shift <const> = 12
+local evpus_to_shift<const> = 12
 
-local current_is_part <const> = library.get_current_part().ID ~= finale.PARTID_SCORE
+local current_is_part<const> = library.get_current_part().ID ~= finale.PARTID_SCORE
 
-local is_staff_visible = function(staff)    
+local is_staff_visible = function(staff)
     local hidden_value = staff.HideMode
     if (hidden_value == finale.STAFFHIDE_SCORE_AND_PARTS) or (hidden_value == finale.STAFFHIDE_CUTAWAY) then
-       return false
+        return false
     end
     if hidden_value == finale.STAFFHIDE_SCORE then
         local current_part = library.get_current_part()
         if current_part:IsScore() then
-          return false
+            return false
         end
     end
-    return true   
+    return true
 end
 
 local system_is_multistaff_at_beginning = function(system_staves, system)
@@ -68,28 +68,30 @@ for system_number = start_system.ItemNo, end_system.ItemNo do
     end
     system:Save()
     local meas_num_region = meas_num_regions:FindMeasure(system.FirstMeasure)
-    multimeasure_rest = finale.FCMultiMeasureRest()
-    local is_for_multimeasure_rest = multimeasure_rest:Load(system.FirstMeasure)
-    for system_staff in each(system_staves) do
-        local cell = finale.FCCell(system.FirstMeasure, system_staff.Staff)
-        if library.is_default_number_visible_and_left_aligned(meas_num_region, cell, system, current_is_part, is_for_multimeasure_rest) then
-            local sep_nums = finale.FCSeparateMeasureNumbers()
-            sep_nums:LoadAllInCell(cell)
-            if (sep_nums.Count > 0) then
-                for sep_num in each(sep_nums) do
+    if meas_num_region then
+        multimeasure_rest = finale.FCMultiMeasureRest()
+        local is_for_multimeasure_rest = multimeasure_rest:Load(system.FirstMeasure)
+        for system_staff in each(system_staves) do
+            local cell = finale.FCCell(system.FirstMeasure, system_staff.Staff)
+            if library.is_default_number_visible_and_left_aligned(meas_num_region, cell, system, current_is_part, is_for_multimeasure_rest) then
+                local sep_nums = finale.FCSeparateMeasureNumbers()
+                sep_nums:LoadAllInCell(cell)
+                if (sep_nums.Count > 0) then
+                    for sep_num in each(sep_nums) do
+                        sep_num.HorizontalPosition = -shift_amount
+                        sep_num:Save()
+                    end
+                elseif (0 ~= shift_amount) then
+                    local sep_num = finale.FCSeparateMeasureNumber()
+                    sep_num:ConnectCell(cell)
+                    sep_num:AssignMeasureNumberRegion(meas_num_region)
                     sep_num.HorizontalPosition = -shift_amount
-                    sep_num:Save()
-                end
-            elseif (0 ~= shift_amount) then
-                local sep_num = finale.FCSeparateMeasureNumber()
-                sep_num:ConnectCell(cell)
-                sep_num:AssignMeasureNumberRegion(meas_num_region)
-                sep_num.HorizontalPosition = -shift_amount
-                if sep_num:SaveNew() then
-                    local measure = finale.FCMeasure()
-                    measure:Load(cell.Measure)
-                    measure:SetContainsManualMeasureNumbers(true)
-                    measure:Save()
+                    if sep_num:SaveNew() then
+                        local measure = finale.FCMeasure()
+                        measure:Load(cell.Measure)
+                        measure:SetContainsManualMeasureNumbers(true)
+                        measure:Save()
+                    end
                 end
             end
         end
